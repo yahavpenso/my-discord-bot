@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import os
+import requests
 from flask import Flask
 from threading import Thread
 
@@ -20,49 +21,45 @@ def keep_alive():
 
 # --- הגדרות הבוט ---
 intents = discord.Intents.default()
-intents.message_content = True  # חשוב: תדליק את זה ב-Discord Developer Portal!
+intents.message_content = True  # חשוב מאוד! תוודא שזה דלוק ב-Discord Developer Portal
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ה-IDs שנתת (כמספרים)
-SOURCE_ID = 1482253320948023368  # הערוץ ממנו מגיעות ההודעות
-TARGET_ID = 1483573061679845488  # הערוץ אליו הבוט שולח
+# הנתונים שלך
+SOURCE_ID = 1482253320948023368
+WEBHOOK_URL = "https://discord.com/api/webhooks/1483573732860624928/mtr60liIyyRv9Ju6KQ5nj_OODVUntCZZ62AyOmR--8GhHzdVQFAQU28EO9YTcoRmUojd"
 
 @bot.event
 async def on_ready():
-    print(f'--- הבוט מחובר! ---')
-    print(f'שם הבוט: {bot.user.name}')
-    print(f'ID: {bot.user.id}')
-    print(f'------------------')
+    print(f'--- הבוט התחבר ומקשיב לערוץ {SOURCE_ID} ---')
 
 @bot.event
 async def on_message(message):
-    # 1. בודק אם ההודעה מהערוץ הנכון
-    # 2. מוודא שזה לא הבוט עצמו ששלח את ההודעה
-    if message.channel.id == SOURCE_ID and message.author.id != bot.user.id:
-        target_channel = bot.get_channel(TARGET_ID)
+    # בודק אם ההודעה מהערוץ הנכון ואם זה לא הבוט עצמו
+    if message.channel.id == SOURCE_ID and not message.author.bot:
         
-        if target_channel:
-            # הכנת התוכן: שם השולח + ההודעה שלו
-            msg_content = f"**{message.author.display_name}**: {message.content}"
-            
-            # שליחת ההודעה
-            await target_channel.send(msg_content)
-            
-            # אם יש קבצים/תמונות, נשלח גם אותם
-            if message.attachments:
-                for attachment in message.attachments:
-                    await target_channel.send(attachment.url)
+        # הכנת הנתונים למשלוח דרך ה-Webhook
+        data = {
+            "content": message.content,
+            "username": f"{message.author.display_name} (מערוץ מקור)",
+            "avatar_url": str(message.author.display_avatar.url)
+        }
+        
+        # שליחה ל-Webhook שלך
+        response = requests.post(WEBHOOK_URL, json=data)
+        
+        if response.status_code == 204:
+            print(f"הודעה מ-{message.author.display_name} הועברה בהצלחה.")
         else:
-            print("שגיאה: הבוט לא מצליח למצוא את ערוץ היעד. וודא שהוא נמצא בשרת שלך!")
+            print(f"שגיאה בהעברת הודעה: {response.status_code}")
 
 # --- הפעלה ---
 keep_alive()
 
-# הבוט ימשוך את ה-TOKEN מה-Environment Variables ב-Render
+# הבוט עדיין צריך את ה-TOKEN כדי "להקשיב" לערוץ המקור
 token = os.environ.get('TOKEN')
 if token:
     bot.run(token)
 else:
-    print("שגיאה: לא הוגדר TOKEN ב-Render Environment Variables!")
+    print("שגיאה: לא נמצא TOKEN ב-Environment Variables של Render!")
