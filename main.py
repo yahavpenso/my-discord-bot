@@ -22,8 +22,8 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-SOURCE_ID = 123456789  # תחליף ב-ID של הערוץ שממנו מעתיקים
-TARGET_ID = 987654321  # תחליף ב-ID של הערוץ שלך
+SOURCE_ID = 1482253320948023368  # תחליף ב-ID של הערוץ שממנו מעתיקים
+TARGET_ID = 1483573061679845488  # תחליף ב-ID של הערוץ שלך
 
 @bot.event
 async def on_ready():
